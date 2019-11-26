@@ -1,5 +1,6 @@
-# Brněnská zimní liga (BZL)
-Program pro příkazovou řádku pro vyhodnocení výsledků jednotlivých závodů ligy a výpočet průběžných výsledků.
+# Brněnská zimní liga (BZL) - zpracování výsledků
+Program pro příkazovou řádku pro vyhodnocení výsledků jednotlivých závodů ligy v orientačním běhu
+a výpočet průběžných výsledků.
 
 ## Závislosti
 - Python 3.6
