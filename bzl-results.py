@@ -18,38 +18,34 @@ def get_points(place):
     ...
     175th place = 1p
     """
-    if type(place) != int:
-        raise ValueError("Place is not an integer!")
-    if place == 1:
+    if place == "1.":
         return 200
-    if place == 2:
+    if place == "2.":
         return 190
-    if place == 3:
+    if place == "3.":
         return 182
-    if place == 4:
+    if place == "4.":
         return 176
-    if place == 5:
+    if place == "5.":
         return 172
-    if place > 175:
+    if place == "DISK" or int(place[:-1]) > 175:
         return 0
-    if place < 1:
-        raise ValueError("Place is lower than 1!")
     else:
-        return 176 - place
+        return 176 - int(place[:-1])
 
 
 def clean_race_dataframe(df):
     """
     Replaces all empty strings, strings containing only whitespaces and None values by NaN.
-    Replaces NaN registrations with 'nereg.'
-    Drops all runners without place (DISK).
-    Converts Place string to int and removes czech style of writing ordered numbers (dot at the end).
+    Replaces empty plaes with 'DISK'.
+    Replaces NaN registrations with 'nereg.'.
+    Replaces empty UserIDs (ORIS) with NaN.
     """
     df.replace(r'^\s*$', np.nan, regex=True, inplace=True)
     df.fillna(value=np.nan, inplace=True)
+    df['Place'] = df['Place'].fillna(value="DISK")
     df['RegNo'] = df['RegNo'].fillna(value="nereg.")
-    df.dropna(inplace=True, subset=['Place'])
-    df['Place'] = df['Place'].str[:-1].astype(int)
+    df['UserID'] = df['UserID'].fillna(value=np.nan)
     return df
 
 
@@ -143,7 +139,14 @@ def list_races():
 
 
 def overall_mode():
-    pass
+    """
+    Goes through all 'points_<id>.csv' files in current directory and creates overall results from points.
+    Runner matching criteria:
+        - if UserID (from ORIS) is presented, it is used as primary key
+    """
+    filenames = sorted([f for f in os.listdir("./") if os.path.isfile(os.path.join("./", f))])
+    race_filenames = [f for f in filenames if f[:7] == "points_" and f[-4:] == ".csv"]
+    # TODO: tady pokracovat - rozmyslet algoritmus parovani lidi
 
 
 def print_help():
