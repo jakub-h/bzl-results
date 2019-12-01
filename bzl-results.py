@@ -131,7 +131,7 @@ def list_races():
             if data['Status'] == 'OK':
                 name = data['Data']['Name']
                 date = data['Data']['Date']
-                print("'{}' - {} - {}".format(filename, name, date))
+                print("'{}' - '{}' - {}".format(filename, name, date))
             else:
                 print("Nepodařilo se stáhnout závod z ORISu. (ORIS status: {})".format(data['Status']))
         except requests.exceptions.ConnectionError:
@@ -142,11 +142,69 @@ def overall_mode():
     """
     Goes through all 'points_<id>.csv' files in current directory and creates overall results from points.
     Runner matching criteria:
-        - if UserID (from ORIS) is presented, it is used as primary key
+        TODO: vyresit matching criteria
     """
+    # Get filenames and ids of races with assigned points
     filenames = sorted([f for f in os.listdir("./") if os.path.isfile(os.path.join("./", f))])
     race_filenames = [f for f in filenames if f[:7] == "points_" and f[-4:] == ".csv"]
-    # TODO: tady pokracovat - rozmyslet algoritmus parovani lidi
+    race_ids = [int(f[7:-4]) for f in race_filenames]
+
+    if len(race_filenames) > 0:
+        races = {}
+        columns_list = ['Name', 'RegNo']
+        # For each race add <id>-Time, <id>-Place and <id>-Points column
+        for r_id, r_filename in zip(race_ids, race_filenames):
+            races[r_id] = pd.read_csv(r_filename, index_col=False)
+            columns_list.append("{}-Time".format(r_id))
+            columns_list.append("{}-Place".format(r_id))
+            columns_list.append("{}-Points".format(r_id))
+        # Create overall results - dataframe for every category
+        ovr_results = {'H': pd.DataFrame(columns=columns_list),
+                       'D': pd.DataFrame(columns=columns_list),
+                       'ZV': pd.DataFrame(columns=columns_list),
+                       'HDD': pd.DataFrame(columns=columns_list)}
+        # Iterate through races and runners and add them to overall results
+        for r_id in race_ids:
+            race = races[r_id]
+            # Create a data structure for adding new runners (have no evidence in already processed races)
+            new_runners = {}
+            for class_desc in ['H', 'D', 'ZV', 'HDD']:
+                new_runners[class_desc] = {'Name': [],
+                                           'RegNo': [],
+                                           '{}-Time'.format(r_id): [],
+                                           '{}-Place'.format(r_id): [],
+                                           '{}-Points'.format(r_id): []}
+            # Iterate through runners
+            for index, race_result in race.iterrows():
+                reg_no = race_result['RegNo']
+                class_desc = race_result['ClassDesc']
+                # Registered runners
+                if reg_no != 'nereg.':
+                    # Runner with this RegNo has no results in this category in overall results so far
+                    if reg_no not in ovr_results[class_desc]['RegNo'].values:
+                        new_runners[class_desc]['Name'].append(race_result['Name'])
+                        new_runners[class_desc]['RegNo'].append(reg_no)
+                        new_runners[class_desc]['{}-Time'.format(r_id)].append(race_result['Time'])
+                        new_runners[class_desc]['{}-Place'.format(r_id)].append(race_result['Place'])
+                        new_runners[class_desc]['{}-Points'.format(r_id)].append(race_result['Points'])
+                    # Runner with this RegNo already has some results in this category in overall results
+                    else:
+                        reg_no_mask = ovr_results[class_desc]['RegNo'] == reg_no
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Time'.format(r_id)] = race_result['Time']
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Place'.format(r_id)] = race_result['Place']
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Points'.format(r_id)] = race_result['Points']
+                # Not registered runners ('nereg.')
+                else:
+                    # TODO - tady pokracovat
+                    pass
+            # Add all new runners to overall results of particular category
+            for class_desc in ['H', 'D', 'ZV', 'HDD']:
+                ovr_results[class_desc] = pd.concat(
+                    [ovr_results[class_desc], pd.DataFrame.from_dict(new_runners[class_desc])],
+                    ignore_index=True,
+                    sort=False)
+    else:
+        print("Žádné závody ve složce nenalezeny.")
 
 
 def print_help():
@@ -174,7 +232,7 @@ def resolve_command(command):
     elif command == "list":
         list_races()
     elif command == "overall":
-        print("Dosud nepodporováno.")
+        overall_mode()
     elif command == "quit":
         return
     else:
