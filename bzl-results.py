@@ -61,10 +61,17 @@ def assign_points_to_race(df):
 
 def export_race_to_csv(df, race_id):
     """
-    Exports race dataframe with assigned points to a .csv file with name in fomrat: points_<race_id>.csv.
+    Exports race dataframe with assigned points to a .csv file with name in format: 'points_<race_id>.csv'.
     """
     if 'Points' in df.columns:
         df.to_csv("points_{}.csv".format(race_id), sep=',', index=False)
+
+
+def export_class_overall_to_csv(df, class_desc):
+    """
+    Exports overall results dataframe to a .csv file with name in format: 'overall_<class_desc>.csv'.
+    """
+    df.to_csv("overall_{}.csv".format(class_desc), sep=',')
 
 
 def race_mode(race_id):
@@ -180,29 +187,43 @@ def overall_mode():
                 class_desc = race_result['ClassDesc']
                 # Registered runners
                 if reg_no != 'nereg.':
+                    # Runner with this RegNo already has some results in this category in overall results
+                    if reg_no in ovr_results[class_desc]['RegNo'].values:
+                        reg_no_mask = ovr_results[class_desc]['RegNo'] == reg_no
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Time'.format(r_id)] = race_result['Time']
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Place'.format(r_id)] = race_result['Place']
+                        ovr_results[class_desc].loc[reg_no_mask, '{}-Points'.format(r_id)] = race_result['Points']
                     # Runner with this RegNo has no results in this category in overall results so far
-                    if reg_no not in ovr_results[class_desc]['RegNo'].values:
+                    else:
                         new_runners[class_desc]['Name'].append(race_result['Name'])
                         new_runners[class_desc]['RegNo'].append(reg_no)
                         new_runners[class_desc]['{}-Time'.format(r_id)].append(race_result['Time'])
                         new_runners[class_desc]['{}-Place'.format(r_id)].append(race_result['Place'])
                         new_runners[class_desc]['{}-Points'.format(r_id)].append(race_result['Points'])
-                    # Runner with this RegNo already has some results in this category in overall results
-                    else:
-                        reg_no_mask = ovr_results[class_desc]['RegNo'] == reg_no
-                        ovr_results[class_desc].loc[reg_no_mask, '{}-Time'.format(r_id)] = race_result['Time']
-                        ovr_results[class_desc].loc[reg_no_mask, '{}-Place'.format(r_id)] = race_result['Place']
-                        ovr_results[class_desc].loc[reg_no_mask, '{}-Points'.format(r_id)] = race_result['Points']
                 # Not registered runners ('nereg.')
                 else:
-                    # TODO - tady pokracovat
-                    pass
+                    name = race_result['Name']
+                    # Runner with this Name already has some results in this category in overall results
+                    if race_result['Name'] in ovr_results[class_desc]['Name'].values:
+                        name_mask = ovr_results[class_desc]['Name'] == name
+                        ovr_results[class_desc].loc[name_mask, '{}-Time'.format(r_id)] = race_result['Time']
+                        ovr_results[class_desc].loc[name_mask, '{}-Place'.format(r_id)] = race_result['Place']
+                        ovr_results[class_desc].loc[name_mask, '{}-Points'.format(r_id)] = race_result['Points']
+                    # Runner with this Name has no results in this category in overall results so far
+                    else:
+                        new_runners[class_desc]['Name'].append(name)
+                        new_runners[class_desc]['RegNo'].append(reg_no)
+                        new_runners[class_desc]['{}-Time'.format(r_id)].append(race_result['Time'])
+                        new_runners[class_desc]['{}-Place'.format(r_id)].append(race_result['Place'])
+                        new_runners[class_desc]['{}-Points'.format(r_id)].append(race_result['Points'])
             # Add all new runners to overall results of particular category
             for class_desc in ['H', 'D', 'ZV', 'HDD']:
                 ovr_results[class_desc] = pd.concat(
                     [ovr_results[class_desc], pd.DataFrame.from_dict(new_runners[class_desc])],
                     ignore_index=True,
                     sort=False)
+        # TODO: dodelat overeni duplicit u neregu (vypsat nejaky anomalie uzivateli a nabidnout mu reseni)
+        # TODO: scitani bodu nejlepsich n vysledku z m zavodu
     else:
         print("Žádné závody ve složce nenalezeny.")
 
