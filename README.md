@@ -4,8 +4,8 @@ a výpočet průběžných výsledků.
 
 ## Závislosti
 - Python 3.6
-- [NumPy](https://numpy.org/)
-- [Pandas](https://pandas.pydata.org/)
+- [NumPy](https://pypi.org/project/numpy/)
+- [Pandas](https://pypi.org/project/pandas/)
 - [Requests](https://pypi.org/project/requests/)
 
 ## Použití
